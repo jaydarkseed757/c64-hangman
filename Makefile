@@ -15,6 +15,10 @@
 #   make run-xl   build and autostart the XL PRG in x64sc
 #   make words    regenerate words.asm and words_xl.asm from wordsrc/
 #                 (tools/gen_words.py)
+#   make internet-archive
+#                 package every PRG, the d64, a zip and README.TXT
+#                 (from dist/README.TXT.in) in internet-archive/ for
+#                 upload to archive.org; VERSION=x.y names the zip
 #   make clean    remove build outputs
 
 ACME     ?= acme
@@ -28,7 +32,19 @@ XL_PRG   := build/hangman-xl.prg
 XL_CRUNCHED := build/hangman-xl-packed.prg
 D64      := build/hangman.d64
 
-.PHONY: all xl crunch d64 run run-xl run-d64 words clean
+GAME     := c64-hangman
+IA_DIR   := internet-archive
+IA_README := dist/README.TXT.in
+# the latest git tag, or "dev" until there is one
+VERSION  ?= $(or $(shell git describe --tags --abbrev=0 2>/dev/null),dev)
+IA_ZIP   := $(GAME)-$(VERSION).zip
+
+# md5sum/sha1sum (Linux, newer macOS) or md5/shasum (older macOS);
+# both forms print the hash first.
+MD5      := $(shell command -v md5sum >/dev/null 2>&1 && echo md5sum || echo 'md5 -r')
+SHA1     := $(shell command -v sha1sum >/dev/null 2>&1 && echo sha1sum || echo 'shasum -a 1')
+
+.PHONY: all xl crunch d64 run run-xl run-d64 words internet-archive clean
 
 all: $(PRG)
 
@@ -79,5 +95,61 @@ words:
 	python3 -I tools/gen_words.py 35500
 	python3 -I tools/gen_words.py --packed 46000
 
+# Rebuilt from scratch on every run.  The d64 is skipped (with a warning)
+# when c1541 is missing.  README.TXT's checksums cover the PRGs and the
+# d64; the zip holds those plus README.TXT.
+internet-archive: $(PRG) $(XL_PRG) $(CRUNCHED) $(XL_CRUNCHED) $(IA_README)
+	rm -rf $(IA_DIR)
+	mkdir -p $(IA_DIR)
+	cp $(PRG) $(XL_PRG) $(CRUNCHED) $(XL_CRUNCHED) $(IA_DIR)/
+	@if command -v $(C1541) >/dev/null 2>&1; then \
+		$(MAKE) --no-print-directory d64 && cp $(D64) $(IA_DIR)/; \
+	else \
+		echo "warning: $(C1541) not found, no .d64 in the package"; \
+	fi
+	@set -e; \
+	list=$(IA_DIR)/.files; : > $$list; \
+	for f in $(IA_DIR)/*.d64 $(IA_DIR)/*.prg; do \
+		[ -f "$$f" ] || continue; \
+		printf '%s  (%s bytes)\n  MD5:  %s\n  SHA1: %s\n\n' "$${f##*/}" \
+			"$$(wc -c < "$$f" | tr -d ' ')" \
+			"$$($(MD5) "$$f" | cut -d' ' -f1)" \
+			"$$($(SHA1) "$$f" | cut -d' ' -f1)" >> $$list; \
+	done; \
+	ver='$(VERSION)'; \
+	[ "$$ver" = dev ] && ver='dev (TODO: tag a release, e.g. git tag v1.0)'; \
+	hash=$$(git rev-parse --short HEAD 2>/dev/null || echo unknown); \
+	acme=$$($(ACME) --version 2>&1 | sed -n 's/.*release \([0-9.]*\).*/\1/p' | head -1); \
+	exo=$$($(EXOMIZER) -v 2>&1 | sed -n 's/.*Exomizer v\([0-9.]*\).*/\1/p' | head -1); \
+	vice=$$($(C1541) -version 2>&1 | sed -n 's/.*(VICE \([0-9.]*\)).*/\1/p' | head -1); \
+	end=$$(printf '%04X' $$((0x0801 + $$(wc -c < $(PRG)) - 3))); \
+	endxl=$$(printf '%04X' $$((0x0801 + $$(wc -c < $(XL_PRG)) - 3))); \
+	awk -v files="$$list" \
+		-v ver="$$ver" \
+		-v date="$$(date -u '+%Y-%m-%d %H:%M UTC')" \
+		-v hash="$$hash" \
+		-v acme="$${acme:-unknown}" -v exo="$${exo:-unknown}" -v vice="$${vice:-unknown}" \
+		-v end="$$end" -v endxl="$$endxl" \
+		-v words="$$(sed -n 's/^WORD_COUNT = //p' words.asm)" \
+		-v wordsxl="$$(sed -n 's/^WORD_COUNT = //p' words_xl.asm)" \
+		-v d64='$(notdir $(D64))' -v zip='$(IA_ZIP)' \
+		'$$0 == "@FILES@" { while ((getline l < files) > 0) print l; next } \
+		{ gsub(/@VERSION@/, ver); gsub(/@DATE@/, date); gsub(/@GITHASH@/, hash); \
+		  gsub(/@ACME@/, acme); gsub(/@EXOMIZER@/, exo); gsub(/@VICE@/, vice); \
+		  gsub(/@END@/, end); gsub(/@END_XL@/, endxl); \
+		  gsub(/@WORDS@/, words); gsub(/@WORDS_XL@/, wordsxl); \
+		  gsub(/@D64@/, d64); gsub(/@ZIP@/, zip); print }' \
+		$(IA_README) > $(IA_DIR)/README.TXT; \
+	rm -f $$list
+	@if command -v zip >/dev/null 2>&1; then \
+		cd $(IA_DIR) && zip -q -X $(IA_ZIP) $$(ls *.d64 *.prg 2>/dev/null) README.TXT; \
+	else \
+		echo "warning: zip not found, no $(IA_ZIP) in the package"; \
+	fi
+	@echo; echo "Internet Archive package: $(CURDIR)/$(IA_DIR)/"; \
+	for f in $(IA_DIR)/*; do \
+		printf '  %-28s %8s bytes\n' "$${f##*/}" "$$(wc -c < "$$f" | tr -d ' ')"; \
+	done
+
 clean:
-	rm -rf build
+	rm -rf build $(IA_DIR)

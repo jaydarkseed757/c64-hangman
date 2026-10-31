@@ -65,6 +65,7 @@ on NTSC it plays about 4% sharp at the same tempo.
 | `make run` / `make run-xl` | build and autostart the unpacked PRG in `x64sc` (PAL, injected straight into RAM) |
 | `make run-d64` | build the disk and boot it from the emulated 1541 |
 | `make words` | regenerate `words.asm` and `words_xl.asm` from `wordsrc/` |
+| `make internet-archive` | `internet-archive/`: every PRG, the d64, `c64-hangman-<version>.zip` and a `README.TXT` for archive.org (template in `dist/README.TXT.in`; set `VERSION=` or tag a release) |
 | `make clean` | remove `build/` |
 
 Override the tools with `ACME=`, `X64=`, `C1541=` or `EXOMIZER=`.

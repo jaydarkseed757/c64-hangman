@@ -1,0 +1,152 @@
+C64 HANGMAN
+===========
+
+TITLE:     C64 Hangman
+AUTHOR:    JDC
+YEAR:      2026
+VERSION:   @VERSION@
+PLATFORM:  Commodore 64 (PAL and NTSC)
+BUILT:     @DATE@ from git @GITHASH@
+
+
+DESCRIPTION
+-----------
+
+C64 Hangman is the classic word-guessing game for the Commodore 64,
+written from scratch in 6502 assembly language. Guess the hidden word
+one letter at a time before the hangman is complete.
+
+It has a title screen with big colour lettering and a SID jingle,
+sound effects for every guess, and win and loss jingles. Words are
+5 to 12 letters long: a handful of C64-themed words (COMMODORE,
+KERNAL, DATASETTE ...) plus the most common English words.
+
+Two versions are included. The normal version has @WORDS@ words.
+The XL version packs @WORDS_XL@ words into the C64's memory by storing
+each letter in 5 bits and using the RAM hidden under the BASIC ROM.
+
+
+HOW TO PLAY
+-----------
+
+Objective: find the hidden word before you make six wrong guesses.
+
+Controls (keyboard only, no joystick needed):
+
+  Any key     start a game from the title screen
+  A to Z      guess a letter
+  Any key     after a round, play a new word
+
+A right letter is filled in everywhere it appears in the word, with a
+chime. A wrong letter is listed under MISSES, adds a piece to the man,
+flashes the border and costs one of your six lives. Letters you have
+already tried are ignored.
+
+Scoring: WINS and LOSSES are counted for the session (up to 99 each).
+When you lose, the word is shown.
+
+Tips: start with common letters such as E, T, A, O, I, N and S. Keys
+pressed while a sound is playing are ignored, so there is no need to
+hurry. The same word never comes up twice in a row.
+
+
+HOW TO LOAD
+-----------
+
+Real hardware (or any emulator), from the disk image @D64@:
+
+  LOAD"*",8,1        loads HANGMAN (the normal version)
+  RUN
+
+  LOAD"HANGMAN XL",8,1
+  RUN                loads the XL version
+
+The .prg files can also be loaded on their own, with LOAD"name",8,1
+and RUN. The -packed files are compressed and unpack themselves after
+RUN. The unpacked files start with a BASIC line, SYS 2061.
+
+VICE (x64sc), from a command line:
+
+  x64sc -autostart @D64@
+  x64sc -autostart hangman-xl-packed.prg
+
+Or drag a .d64 or .prg file onto the VICE window to autostart it.
+
+Cartridge: there is no cartridge (.crt) version.
+
+The Internet Archive's in-browser emulator may be able to run the
+disk image or a .prg file directly from this item's page.
+
+
+FILES INCLUDED
+--------------
+
+@FILES@
+@ZIP@ holds all of the files above plus this README.TXT.
+
+
+TECHNICAL NOTES
+---------------
+
+Built with ACME @ACME@, exomizer @EXOMIZER@ and VICE @VICE@ (c1541).
+
+Memory: every .prg loads at $0801 (2049) and starts with a BASIC
+SYS 2061 line. The normal version ends at $@END@, below the BASIC
+ROM. The XL version switches the BASIC ROM out and ends at $@END_XL@,
+below the I/O area at $D000.
+
+How it works:
+
+- Text mode only, drawn directly into screen and colour RAM. No
+  sprites or raster interrupts; the KERNAL IRQ stays on and provides
+  the 60 Hz jiffy clock used for timing.
+- SID voices 1 and 2 play the sound effects and jingles through a
+  small blocking player. Voice 3 runs as a muted noise generator and
+  is the random number source.
+- Each word is picked with a random number re-rolled until it is in
+  range, so every word is equally likely. An index of every 32nd word
+  keeps the lookup fast.
+- Notes are tuned for PAL; on NTSC they play about 4% sharp at the
+  same tempo.
+
+
+BUILDING FROM SOURCE
+--------------------
+
+Source: https://github.com/jaydarkseed757/c64-hangman
+
+Tools: ACME 0.97, exomizer 3.1, VICE (x64sc, c1541), GNU make, and
+Python 3 (only to regenerate the word lists).
+
+  make                    build/hangman.prg
+  make xl                 build/hangman-xl.prg
+  make crunch             both exomizer-packed .prg files
+  make d64                build/hangman.d64 with both versions
+  make run                build and run in x64sc
+  make internet-archive   this package, in internet-archive/
+
+
+CREDITS AND LICENSE
+-------------------
+
+Game, code and sound: JDC.
+
+Word list: based on google-10000-english-no-swears.txt from
+https://github.com/first20hours/google-10000-english
+TODO: check the word list's license terms and credit it as required.
+
+License: TODO: choose a license for the game (none is stated yet).
+
+
+SUGGESTED ARCHIVE.ORG METADATA
+------------------------------
+
+Title:        C64 Hangman
+Creator:      JDC
+Date:         2026
+Mediatype:    software
+Subject tags: commodore 64; c64; game; hangman; word game; puzzle;
+              homebrew; 6502
+Description:  Classic hangman word game for the Commodore 64, written
+              in 6502 assembly, with SID sound and up to @WORDS_XL@
+              words.
