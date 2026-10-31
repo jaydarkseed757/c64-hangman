@@ -64,6 +64,7 @@ on NTSC it plays about 4% sharp at the same tempo.
 | `make d64` | `build/hangman.d64` with files `HANGMAN` and `HANGMAN XL` |
 | `make run` / `make run-xl` | build and autostart the unpacked PRG in `x64sc` (PAL, injected straight into RAM) |
 | `make run-d64` | build the disk and boot it from the emulated 1541 |
+| `make ultimate` / `make ultimate-xl` | send the PRG to a C64 Ultimate over its REST API and RUN it (`tools/run_ultimate.sh`; `ULT_HOST=`, `ULT_FILE=build/hangman.d64` mounts the disk instead, `ULT_PASSWORD=`, `ULT_DRY=1` only prints) |
 | `make words` | regenerate `words.asm` and `words_xl.asm` from `wordsrc/` |
 | `make internet-archive` | `internet-archive/`: every PRG, the d64, `c64-hangman-<version>.zip` and a `README.TXT` for archive.org (template in `dist/README.TXT.in`; set `VERSION=` or tag a release) |
 | `make clean` | remove `build/` |

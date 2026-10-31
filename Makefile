@@ -13,6 +13,11 @@
 #   make xl       build build/hangman-xl.prg: every word in the list
 #                 (~7,500), 5-bit packed, using the RAM under BASIC ROM
 #   make run-xl   build and autostart the XL PRG in x64sc
+#   make ultimate send build/hangman.prg to the C64 Ultimate over its REST
+#                 API and RUN it (tools/run_ultimate.sh; ULT_HOST,
+#                 ULT_FILE=build/hangman.d64 mounts a disk instead,
+#                 ULT_PASSWORD, ULT_DRY=1 only prints)
+#   make ultimate-xl  the same with build/hangman-xl.prg
 #   make words    regenerate words.asm and words_xl.asm from wordsrc/
 #                 (tools/gen_words.py)
 #   make internet-archive
@@ -44,7 +49,7 @@ IA_ZIP   := $(GAME)-$(VERSION).zip
 MD5      := $(shell command -v md5sum >/dev/null 2>&1 && echo md5sum || echo 'md5 -r')
 SHA1     := $(shell command -v sha1sum >/dev/null 2>&1 && echo sha1sum || echo 'shasum -a 1')
 
-.PHONY: all xl crunch d64 run run-xl run-d64 words internet-archive clean
+.PHONY: all xl crunch d64 run run-xl run-d64 ultimate ultimate-xl words internet-archive clean
 
 all: $(PRG)
 
@@ -88,6 +93,16 @@ run-xl: $(XL_PRG)
 
 run-d64: $(D64)
 	$(X64) -pal +warp -autostart $(D64)
+
+# Run on the C64 Ultimate: the PRG is DMA-loaded and RUN over the REST API
+# (nothing written to its storage). ULT_FILE picks another build file; a .d64
+# is mounted on drive A and the machine reset.
+ULT_FILE ?= $(PRG)
+ultimate: $(ULT_FILE)
+	ULT_FILE="$(ULT_FILE)" tools/run_ultimate.sh
+
+ultimate-xl: $(XL_PRG)
+	ULT_FILE="$(XL_PRG)" tools/run_ultimate.sh
 
 # ~35 KB of words fits below $$A000; pass a smaller budget if the code grows.
 # The XL budget (to $$D000) is more than the whole list needs.
